@@ -1,7 +1,17 @@
-version: '3.8'
-
+version: '3'
 services:
   server:
-    build: ./server
+    build:
+      context: .
+      dockerfile: server/dockerfile
     ports:
       - "8000:8000"
+
+  client:
+    build:
+      context: .
+      dockerfile: client/dockerfile
+    depends_on:
+      - server
+    environment:
+      - SERVER_URL=http://server:8000
