@@ -1,6 +1,6 @@
 from fastapi import APIRouter
-from .models import MessageRequest
-from .database import get_messages, add_message
+from models import MessageRequest
+from database import get_messages, add_message
 
 router = APIRouter()
 
