@@ -16,9 +16,15 @@ class ChatClient:
         self.chat_display = scrolledtext.ScrolledText(root, state='disabled')
         self.chat_display.pack(padx=10, pady=10)
 
+        self.message_label = tk.Label(root, text="Enter your message:")
+        self.message_label.pack(padx=10, pady=5)
+
         self.message_entry = tk.Entry(root, width=50)
         self.message_entry.pack(padx=10, pady=10)
         self.message_entry.bind("<Return>", self.send_message)
+
+        self.send_button = tk.Button(root, text="Send", command=self.send_message)
+        self.send_button.pack(padx=10, pady=5)
 
         self.get_messages_thread = threading.Thread(target=self.get_messages, daemon=True)
         self.get_messages_thread.start()
@@ -39,9 +45,9 @@ class ChatClient:
                     print("Failed to retrieve messages")
             except Exception as e:
                 print(f"Error: {e}")
-            time.sleep(2)
+            time.sleep(1)
 
-    def send_message(self, event):
+    def send_message(self, event=None):
         message = self.message_entry.get()
         if message:
             try:
@@ -60,7 +66,7 @@ def main():
     height = root.winfo_screenheight()
     root.geometry("%dx%d" % (width, height))
     username = simpledialog.askstring("Username", "Enter your username:", parent=root)
-    ChatClient(root, username)
+    ChatClient(root=root, username=username)
     root.mainloop()
 
 
