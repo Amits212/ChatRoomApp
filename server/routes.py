@@ -7,10 +7,11 @@ router = APIRouter()
 
 @router.post("/api/send")
 async def send_message(message: MessageRequest):
-    add_message(message)
+    await add_message(message)
     return {"message": "Message sent successfully"}
 
 
 @router.get("/api/messages")
 async def get_all_messages():
-    return get_messages()
+    messages = await get_messages()
+    return messages

@@ -6,6 +6,8 @@ services:
       dockerfile: server/dockerfile
     ports:
       - "8000:8000"
+    depends_on:
+      - mongo
 
   client:
     build:
@@ -15,3 +17,8 @@ services:
       - server
     environment:
       - SERVER_URL=http://server:8000
+
+  mongo:
+    image: mongo:4.4
+    ports:
+      - "27017:27017"
