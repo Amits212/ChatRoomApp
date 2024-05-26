@@ -1,8 +1,11 @@
+import json
+
 import requests
 import threading
-import time
 import tkinter as tk
 from tkinter import scrolledtext, simpledialog, messagebox, ttk
+import asyncio
+import websockets
 
 SERVER_URL = 'http://localhost:8000'
 
@@ -13,7 +16,6 @@ class ChatClient:
         self.username = username
         self.room = None
         self.options_box = None
-        self.get_messages_thread = None
 
         self.chat_display = scrolledtext.ScrolledText(root, state='disabled')
         self.chat_display.pack(padx=10, pady=10)
@@ -41,9 +43,6 @@ class ChatClient:
             self.options_box.place(x=50, y=50)
             button = ttk.Button(text="Select Room", command=self.display_selection)
             button.place(x=50, y=100)
-
-            self.get_messages_thread = threading.Thread(target=self.get_messages, daemon=True)
-            self.get_messages_thread.start()
         else:
             messagebox.showinfo("Info", "No rooms available. Please create a room first.")
             self.create_room()
@@ -55,6 +54,7 @@ class ChatClient:
             message=f"The selected Room is: {self.room}",
             title="Selection"
         )
+        threading.Thread(target=self.websocket_listener, daemon=True).start()
 
     def create_room(self):
         room_name = simpledialog.askstring("Create Room", "Enter room name:", parent=self.root)
@@ -64,31 +64,10 @@ class ChatClient:
                 if response.status_code == 200:
                     messagebox.showinfo("Success", "Room created successfully.")
                     self.room = room_name
-
-                    self.get_messages_thread = threading.Thread(target=self.get_messages, daemon=True)
-                    self.get_messages_thread.start()
                 else:
                     messagebox.showerror("Error", "Failed to create room.")
             except Exception as e:
                 print(f"Error: {e}")
-
-    def get_messages(self):
-        while True:
-            try:
-                response = requests.get(f"{SERVER_URL}/api/messages/{self.room}")
-                if response.status_code == 200:
-                    messages = response.json()
-                    self.chat_display.configure(state='normal', background='#a5abe3')
-                    self.chat_display.delete(1.0, tk.END)
-                    for message in messages:
-                        self.chat_display.insert(tk.END, f"{message['username']}: {message['message']}\n")
-                    self.chat_display.configure(state='disabled')
-                    self.chat_display.yview(tk.END)
-                else:
-                    print("Failed to retrieve messages")
-            except Exception as e:
-                print(f"Error: {e}")
-            time.sleep(1)
 
     def send_message(self, event=None):
         message = self.message_entry.get()
@@ -102,6 +81,20 @@ class ChatClient:
                     print("Failed to send message")
             except Exception as e:
                 print(f"Error: {e}")
+
+    def websocket_listener(self):
+        async def listen():
+            uri = f"ws://localhost:8000/ws/{self.room}"
+            async with websockets.connect(uri) as websocket:
+                while True:
+                    data = await websocket.recv()
+                    message = json.loads(data)
+                    self.chat_display.configure(state='normal', background='#a5abe3')
+                    self.chat_display.insert(tk.END, f"{message['username']}: {message['message']}\n")
+                    self.chat_display.configure(state='disabled')
+                    self.chat_display.yview(tk.END)
+
+        asyncio.new_event_loop().run_until_complete(listen())
 
 
 def main():
