@@ -2,7 +2,7 @@ import requests
 import threading
 import time
 import tkinter as tk
-from tkinter import scrolledtext, simpledialog, messagebox
+from tkinter import scrolledtext, simpledialog, messagebox, ttk
 
 SERVER_URL = 'http://localhost:8000'
 
@@ -12,7 +12,7 @@ class ChatClient:
         self.root = root
         self.username = username
         self.room = None
-        self.root.title(f"Chat User: {self.username}")
+        self.options_box = None
         self.get_messages_thread = None
 
         self.chat_display = scrolledtext.ScrolledText(root, state='disabled')
@@ -33,14 +33,28 @@ class ChatClient:
     def choose_room(self):
         rooms = requests.get(f"{SERVER_URL}/api/rooms").json()
         if rooms:
-            self.room = simpledialog.askstring("Room", "Choose a room:", parent=self.root,
-                                               initialvalue=rooms[0]['name'])
+            rooms_options = [room['name'] for room in rooms]
+            self.options_box = ttk.Combobox(
+                state="readonly",
+                values=rooms_options
+            )
+            self.options_box.place(x=50, y=50)
+            button = ttk.Button(text="Select Room", command=self.display_selection)
+            button.place(x=50, y=100)
 
             self.get_messages_thread = threading.Thread(target=self.get_messages, daemon=True)
             self.get_messages_thread.start()
         else:
             messagebox.showinfo("Info", "No rooms available. Please create a room first.")
             self.create_room()
+
+    def display_selection(self):
+        self.room = self.options_box.get()
+        self.root.title(f"Chat User: {self.username} | Room: {self.room if self.room else ''}")
+        messagebox.showinfo(
+            message=f"The selected Room is: {self.room}",
+            title="Selection"
+        )
 
     def create_room(self):
         room_name = simpledialog.askstring("Create Room", "Enter room name:", parent=self.root)
