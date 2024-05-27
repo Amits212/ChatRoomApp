@@ -1,6 +1,8 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from models import MessageRequest, ChatRoom
-from database import get_messages, add_message, add_room, get_rooms
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Body, HTTPException
+from starlette import status
+
+from models import MessageRequest, ChatRoom, User
+from database import get_messages, add_message, add_room, get_rooms, get_user, create_user
 from typing import List
 from collections import defaultdict
 
@@ -47,3 +49,29 @@ async def websocket_endpoint(websocket: WebSocket, room_name: str):
 async def notify_clients(room_name: str, message: MessageRequest):
     for websocket in active_connections[room_name]:
         await websocket.send_json({"username": message.username, "message": message.message})
+
+
+@router.post("/api/login")
+async def login(username: str = Body(...), password: str = Body(...)):
+    user = await get_user(username)
+    if user and user['password'] == password:
+        return {"message": "Login successful"}
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+        )
+
+
+@router.post("/api/signup")
+async def sign_up(username: str = Body(...), password: str = Body(...)):
+    new_user = User(username=username, password=password)
+    user_in_db = await get_user(new_user.username)
+    if user_in_db:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Username already exists",
+        )
+    await create_user(user=new_user)
+    return {"message": "User registered successfully"}
+
