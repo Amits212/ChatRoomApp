@@ -1,4 +1,6 @@
 import json
+import logging
+
 import requests
 import threading
 import tkinter as tk
@@ -112,22 +114,36 @@ class ChatClient:
                                                                                      "message": message})
                 if response.status_code == 200:
                     self.message_entry.delete(0, tk.END)
+                    self.notify_users_seen_message()
                 else:
                     print("Failed to send message")
             except Exception as e:
                 print(f"Error: {e}")
 
+    def notify_users_seen_message(self):
+        try:
+            response = requests.get(f"{SERVER_URL}/api/users/{self.room}")
+            if response.status_code == 200:
+                users = response.json()
+                seen_by_users = ', '.join(users)
+                logging.info(f"Users {seen_by_users} have seen your message")
+        except Exception as e:
+            print(f"Error: {e}")
+
     def websocket_listener(self):
         async def listen():
             uri = f"ws://localhost:8000/ws/{self.room}"
-            async with websockets.connect(uri) as websocket:
-                while True:
-                    data = await websocket.recv()
-                    message = json.loads(data)
-                    self.chat_display.configure(state='normal', background='#a5abe3')
-                    self.chat_display.insert(tk.END, f"{message['username']}: {message['message']}\n")
-                    self.chat_display.configure(state='disabled')
-                    self.chat_display.yview(tk.END)
+            try:
+                async with websockets.connect(uri) as websocket:
+                    while True:
+                        data = await websocket.recv()
+                        message = json.loads(data)
+                        self.chat_display.configure(state='normal', background='#a5abe3')
+                        self.chat_display.insert(tk.END, f"{message['username']}: {message['message']}\n")
+                        self.chat_display.configure(state='disabled')
+                        self.chat_display.yview(tk.END)
+            except Exception as e:
+                print(f"WebSocket Error: {e}")
 
         asyncio.new_event_loop().run_until_complete(listen())
 

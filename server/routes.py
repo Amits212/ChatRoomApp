@@ -2,7 +2,8 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Body, HTTPExcepti
 from starlette import status
 
 from models import MessageRequest, ChatRoom, User
-from database import get_messages, add_message, add_room, get_rooms, get_user, create_user
+from database import get_messages, add_message, add_room, get_rooms, get_user, create_user, \
+    retrieve_users_in_room_from_database
 from typing import List
 from collections import defaultdict
 
@@ -27,6 +28,12 @@ async def get_all_messages(room_name: str):
 async def create_room(room: ChatRoom):
     await add_room(room=room)
     return {"room": "Room created successfully"}
+
+
+@router.get("/api/users/{room_name}")
+async def get_users_in_room(room_name: str):
+    users = await retrieve_users_in_room_from_database(room_name)
+    return users
 
 
 @router.get("/api/rooms")
