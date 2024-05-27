@@ -11,3 +11,8 @@ class MessageRequest(BaseModel):
 class ChatRoom(BaseModel):
     name: str
     messages: List[MessageRequest] = []
+
+
+class User(BaseModel):
+    username: str
+    password: str

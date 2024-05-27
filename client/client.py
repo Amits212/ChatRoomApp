@@ -1,5 +1,4 @@
 import json
-
 import requests
 import threading
 import tkinter as tk
@@ -11,23 +10,59 @@ SERVER_URL = 'http://localhost:8000'
 
 
 class ChatClient:
-    def __init__(self, root, username):
+    def __init__(self, root):
         self.root = root
-        self.username = username
+        self.username = None
         self.room = None
         self.options_box = None
+        self.chat_display = None
+        self.message_entry = None
 
-        self.chat_display = scrolledtext.ScrolledText(root, state='disabled')
+        self.login_or_signup()
+
+    def login_or_signup(self):
+        choice = messagebox.askyesno("Login or Signup", "Do you want to login?")
+        if choice:
+            self.login()
+        else:
+            self.signup()
+
+    def login(self):
+        username = simpledialog.askstring("Login", "Enter your username:", parent=self.root)
+        password = simpledialog.askstring("Login", "Enter your password:", parent=self.root, show="*")
+        try:
+            response = requests.post(f"{SERVER_URL}/api/login", json={"username": username, "password": password})
+            if response.status_code == 200:
+                self.username = username
+                self.create_chat_interface()
+            else:
+                messagebox.showerror("Error", "Invalid username or password. Please try again.")
+        except Exception as e:
+            print(f"Error: {e}")
+
+    def signup(self):
+        username = simpledialog.askstring("Signup", "Enter your username:", parent=self.root)
+        password = simpledialog.askstring("Signup", "Enter your password:", parent=self.root, show="*")
+        try:
+            response = requests.post(f"{SERVER_URL}/api/signup", json={"username": username, "password": password})
+            if response.status_code == 200:
+                self.username = username
+                self.create_chat_interface()
+            else:
+                messagebox.showerror("Error", "Failed to signup. Username might already exist.")
+        except Exception as e:
+            print(f"Error: {e}")
+
+    def create_chat_interface(self):
+        self.root.title(f"Chat User: {self.username}")
+        self.chat_display = scrolledtext.ScrolledText(self.root, state='disabled')
         self.chat_display.pack(padx=10, pady=10)
 
-        self.message_label = tk.Label(root, text="Enter your message:")
-        self.message_label.pack(padx=10, pady=5)
-
-        self.message_entry = tk.Entry(root, width=50)
+        self.message_entry = tk.Entry(self.root, width=50)
         self.message_entry.pack(padx=10, pady=10)
         self.message_entry.bind("<Return>", self.send_message)
 
-        self.send_button = tk.Button(root, text="Send", command=self.send_message)
+        self.send_button = tk.Button(self.root, text="Send", command=self.send_message)
         self.send_button.pack(padx=10, pady=5)
 
         self.choose_room()
@@ -102,8 +137,7 @@ def main():
     width = root.winfo_screenwidth()
     height = root.winfo_screenheight()
     root.geometry("%dx%d" % (width, height))
-    username = simpledialog.askstring("Username", "Enter your username:", parent=root)
-    ChatClient(root=root, username=username)
+    ChatClient(root=root)
     root.mainloop()
 
 
