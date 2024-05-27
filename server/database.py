@@ -44,3 +44,13 @@ async def create_user(user: User):
     await users_collection.insert_one(user.dict())
 
 
+async def retrieve_users_in_room_from_database(room_name: str) -> List[str]:
+    room = await rooms_collection.find_one({"name": room_name})
+    if room:
+        usernames = [message['username'] for message in room.get('messages', [])]
+        unique_usernames = list(set(usernames))
+        return unique_usernames
+    else:
+        return []
+
+
